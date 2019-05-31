@@ -3,6 +3,7 @@
 import java.net.*;
 import java.io.*;
 import java.util.*;
+import java.util.ArrayList;
 
 public class ChatServer {
 
@@ -24,6 +25,14 @@ public class ChatServer {
 }
 
 class ChatThread extends Thread{
+	ArrayList<String> no=new ArrayList<>();
+	
+	no.add("banknumber");
+	no.add("phonenumber");
+	no.add("passportnumber");
+	//{"banknumber","phonenumber","passportnumber"};
+	int size=no.size();/	
+	
 	private Socket sock;
 	private String id;
 	private BufferedReader br;
@@ -35,7 +44,7 @@ class ChatThread extends Thread{
 		try{
 			PrintWriter pw = new PrintWriter(new OutputStreamWriter(sock.getOutputStream()));
 			br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-			pw.println("#Do not ask private information");
+		//	pw.println("#Do not ask private information : accountnumber,phonenumber,passportnumber,residentnumber,acoountpassword");
 			pw.flush();
 			id = br.readLine();
 			broadcast(id + " entered.");
@@ -60,6 +69,13 @@ class ChatThread extends Thread{
 				else if(line.indexOf("/userlist")==0){
 					send_userlist(id);
 				}
+				else if(line.indexOf("/addspam ")==0){
+					addspam(line);
+				}
+				else if(line.indexOf("/spamlist")==0){
+					spamlist(line,id);
+				}
+
 				else{
 					if(ban(line,id)!=1)
 					broadcast(id + " : " + line);
@@ -88,7 +104,10 @@ class ChatThread extends Thread{
 			Object obj = hm.get(to);
 			if(obj != null){
 				PrintWriter pw = (PrintWriter)obj;
-				pw.println(id + " whisphered. : " + msg2);
+				 long time=System.currentTimeMillis();
+                                SimpleDateFormat dayTime=new SimpleDateFormat("hh:mm:ss");
+                                String str=dayTime.format(new Date(time));
+                                pw.println(str + id + " whisphered. : " + msg2);
 				pw.flush();
 			} // if
 		}
@@ -100,29 +119,47 @@ class ChatThread extends Thread{
 			while(iter.hasNext()){
 				PrintWriter pw = (PrintWriter)iter.next();
 				if(pw==hm.get(id)) continue; //if pw of user id is same with pw, skip and continue.
-				pw.println(msg);
+				
+				SimpleDateFormat dayTime=new SimpleDateFormat("hh:mm:ss");
+				String str=dayTime.format(new Date(time));
+				pw.println(str + msg);
 				pw.flush();
 			}
 		}
 	} // broadcast
 
 	public int ban(String msg,String id){		
-		String[] no={"banknumber","phonenumber","passportnumber","residentnumber","bankpassword"};
 		int p=0;
-                for(int i=0; i<5;i++){
-                   if(msg.indexOf(no[i])!=-1) p=1;
+		int i;
+                for(i=0; i<no.size();i++){
+                   if(msg.indexOf(no[i])!=-1) {p=1; break;}
                    }
 		if(p==1){
 			Object obj=hm.get(id);
 			if(obj!=null){
 				PrintWriter pw=(PrintWriter)obj;
-				pw.println("You shut up! your sentence contains ban word!");
+				pw.println("You shut up! your sentence contains ban word : " + no[i] );
 				pw.flush();
 			}
 		}
+	
 		return p;
 	} // if user typed such ban words using indexOf function, warnning sentence prints.
           
+	*public  void addspam(String msg){
+		no.add(msg);
+	}
+	public void spamlist(String msg,String id){
+		 Object obj=hm.get(id);
+                  if(obj!=null){
+                      PrintWriter pw=(PrintWriter)obj;
+		      for(int i=0; i<no.size(); i++){
+			      pw.println( no[i] + " " );
+                               
+                        }
+		      pw.flush();
+		}
+
 	public void send_userlist(String id){
 		int count=0;
 		PrintWriter pw=(PrintWriter)hm.get(id);
